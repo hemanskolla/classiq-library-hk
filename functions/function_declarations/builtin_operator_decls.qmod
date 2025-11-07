@@ -1,3 +1,0 @@
-// Builtin operators
-qfunc permute<functions: qfunc[] ()>();
-qfunc apply<operand: qfunc ()>();

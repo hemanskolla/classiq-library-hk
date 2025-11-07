@@ -1,7 +1,5 @@
-qfunc main() {
-  q1: qbit;
-  allocate<1>(q1);
-  q2: qbit;
-  allocate<1>(q2);
+qfunc main(output q1: qbit, output q2: qbit) {
+  allocate(q1);
+  allocate(q2);
   SWAP(q1, q2);
 }

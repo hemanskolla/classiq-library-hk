@@ -1,0 +1,166 @@
+qfunc load_b(amplitudes: real[], output state: qbit[]) {
+  prepare_amplitudes(amplitudes, 0.0, state);
+}
+
+qfunc hhl(rhs_vector: real[], precision: int, hamiltonian_evolution_with_power: qfunc (int, qbit[]), output state: qbit[], output phase: qnum, output indicator: qbit) {
+  allocate(precision, UNSIGNED, precision, phase);
+  load_b([
+    0.1825741858,
+    0.3651483717,
+    0.7302967433,
+    0.5477225575
+  ], state);
+  allocate(indicator);
+  within {
+    qpe_flexible(lambda(k) {
+      hamiltonian_evolution_with_power(k, state);
+    }, phase);
+  } apply {
+    indicator *= (1 / (2 ** phase.size)) / phase;
+  }
+}
+
+qfunc main(output res: qnum, output phase_var: qnum, output indicator: qbit) {
+  hhl([
+    0.1825741858,
+    0.3651483717,
+    0.7302967433,
+    0.5477225575
+  ], 4, lambda(pw, target) {
+    suzuki_trotter(SparsePauliOp {
+      terms=[
+        SparsePauliTerm {
+          paulis=[
+            IndexedPauli {
+              pauli=Pauli::I,
+              index=0
+            },
+            IndexedPauli {
+              pauli=Pauli::I,
+              index=1
+            }
+          ],
+          coefficient=0.4075
+        },
+        SparsePauliTerm {
+          paulis=[
+            IndexedPauli {
+              pauli=Pauli::Z,
+              index=0
+            },
+            IndexedPauli {
+              pauli=Pauli::I,
+              index=1
+            }
+          ],
+          coefficient=-0.0525
+        },
+        SparsePauliTerm {
+          paulis=[
+            IndexedPauli {
+              pauli=Pauli::I,
+              index=0
+            },
+            IndexedPauli {
+              pauli=Pauli::Z,
+              index=1
+            }
+          ],
+          coefficient=-0.0175
+        },
+        SparsePauliTerm {
+          paulis=[
+            IndexedPauli {
+              pauli=Pauli::Z,
+              index=0
+            },
+            IndexedPauli {
+              pauli=Pauli::Z,
+              index=1
+            }
+          ],
+          coefficient=-0.0575
+        },
+        SparsePauliTerm {
+          paulis=[
+            IndexedPauli {
+              pauli=Pauli::X,
+              index=0
+            },
+            IndexedPauli {
+              pauli=Pauli::I,
+              index=1
+            }
+          ],
+          coefficient=-0.03
+        },
+        SparsePauliTerm {
+          paulis=[
+            IndexedPauli {
+              pauli=Pauli::X,
+              index=0
+            },
+            IndexedPauli {
+              pauli=Pauli::Z,
+              index=1
+            }
+          ],
+          coefficient=0.02
+        },
+        SparsePauliTerm {
+          paulis=[
+            IndexedPauli {
+              pauli=Pauli::I,
+              index=0
+            },
+            IndexedPauli {
+              pauli=Pauli::X,
+              index=1
+            }
+          ],
+          coefficient=-0.025
+        },
+        SparsePauliTerm {
+          paulis=[
+            IndexedPauli {
+              pauli=Pauli::Z,
+              index=0
+            },
+            IndexedPauli {
+              pauli=Pauli::X,
+              index=1
+            }
+          ],
+          coefficient=0.045
+        },
+        SparsePauliTerm {
+          paulis=[
+            IndexedPauli {
+              pauli=Pauli::X,
+              index=0
+            },
+            IndexedPauli {
+              pauli=Pauli::X,
+              index=1
+            }
+          ],
+          coefficient=-0.16
+        },
+        SparsePauliTerm {
+          paulis=[
+            IndexedPauli {
+              pauli=Pauli::Y,
+              index=0
+            },
+            IndexedPauli {
+              pauli=Pauli::Y,
+              index=1
+            }
+          ],
+          coefficient=-0.06
+        }
+      ],
+      num_qubits=2
+    }, (-6.2831853072) * pw, 1, 4 * ceiling(1.8 ** log(pw, 2)), target);
+  }, res, phase_var, indicator);
+}

@@ -1,0 +1,50 @@
+name: "Test CI (weekly) (notebooks: other)"
+
+on:
+  schedule:
+    - cron: "00 01 * * 6" # Saturday, 01:00 UTC
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  nightly-test:
+    permissions:
+      id-token: write
+      contents: read
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup python and classiq and nightly aws
+        uses: ./.github/actions/setup_classiq_on_nightly
+        with:
+          aws-role: ${{ secrets.AWS_ROLE }}
+          codeartifact-domain: ${{ secrets.CODEARTIFACT_DOMAIN }}
+          codeartifact-owner: ${{ secrets.CODEARTIFACT_OWNER }}
+          codeartifact-region: ${{ secrets.CODEARTIFACT_REGION }}
+          nightly-m2m-secret-arn: ${{ secrets.NIGHTLY_M2M_SECRET_ARN }}
+          pypi-nightly-name: ${{ secrets.PYPI_NIGHTLY_NAME }}
+
+      # Run Notebook Tests
+      - name: Run Notebooks
+        run: python -m pytest  $(<tests/config_weekly) tests/notebooks/test__community_and_functions.py tests/notebooks/workshops tests/notebooks/classiq_paper
+        env:
+          # to disable a warning in Jupyter notebooks
+          JUPYTER_PLATFORM_DIRS: "1"
+          # Passing which notebooks changed
+          SHOULD_TEST_ALL_FILES: "true"
+          # Passing environment information
+          CLASSIQ_IDE: "https://nightly.platform.classiq.io"
+          CLASSIQ_HOST: "https://nightly.platform.classiq.io"
+
+      - name: Send Qmods Slack notification
+        if: failure()
+        uses: ./.github/actions/send_qmods_slack_notification
+        with:
+          slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}

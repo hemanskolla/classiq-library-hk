@@ -1,0 +1,26 @@
+qfunc quantum_coin_flip(coin: qbit) {
+  H(coin);
+}
+
+qperm quantum_step_clockwise(x: qnum) {
+  x += 1;
+}
+
+qfunc discrete_quantum_walk_circle(time: int, coin: qbit, x: qbit[]) {
+  power (time) {
+    quantum_coin_flip(coin);
+    control (coin == 0) {
+      quantum_step_clockwise(x);
+    } else {
+      invert {
+        quantum_step_clockwise(x);
+      }
+    }
+  }
+}
+
+qfunc main(t: int, output x: qnum<floor(log(128, 2)), SIGNED, 0>, output coin: qbit) {
+  allocate(x);
+  allocate(coin);
+  discrete_quantum_walk_circle(t, coin, x);
+}

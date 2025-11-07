@@ -1,33 +1,20 @@
-qfunc complex_predicate(x: qnum, res: qbit) {
-  res ^= max(x ^ 4, x & 3) >= 4;
-}
-
-qfunc prep_minus(output out: qbit) {
-  allocate<1>(out);
-  X(out);
-  H(out);
-}
-
-qfunc my_oracle<predicate: qfunc (arg0: qnum, arg1: qbit)>(target: qnum) {
-  aux: qbit;
+qfunc deutsch_jozsa(predicate: qfunc (qnum, qbit), x: qnum) {
   within {
-    prep_minus(aux);
+    hadamard_transform(x);
   } apply {
-    predicate(target, aux);
+    phase_oracle(lambda(x, y) {
+      predicate(x, y);
+    }, x);
   }
 }
 
-qfunc deutsch_jozsa<predicate: qfunc (arg0: qnum, arg1: qbit)>(x: qnum) {
-  hadamard_transform(x);
-  my_oracle<lambda(x, y) {
-    predicate(x, y);
-  }>(x);
-  hadamard_transform(x);
+qperm complex_predicate(const x: qnum, res: qbit) {
+  res ^= max(x ^ 4, x & 3) >= 4;
 }
 
-qfunc main(output x: qnum) {
-  allocate<3>(x);
-  deutsch_jozsa<lambda(x, y) {
+qfunc main(output x: qnum<3>) {
+  allocate(x);
+  deutsch_jozsa(lambda(x, y) {
     complex_predicate(x, y);
-  }>(x);
+  }, x);
 }

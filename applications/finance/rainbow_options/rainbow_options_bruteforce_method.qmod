@@ -1,0 +1,54 @@
+qstruct EstimationVars {
+  x1: qnum<2>;
+  x2: qnum<2>;
+}
+
+qperm oracle(const est_reg: qbit[]) {
+  Z(est_reg[est_reg.len - 1]);
+}
+
+qperm affine_max(const x1: qnum, const x2: qnum, output res: qnum) {
+  res = max(x1 * 1.0, ((x1 * 0.5) + (x2 * 0.5)) + (-1.5));
+}
+
+qfunc brute_force_payoff(const max_reg: qnum, ind_reg: qbit) {
+  max_reg_fixed: qnum<max_reg.size, False, max_reg.size>;
+  max_reg -> max_reg_fixed;
+  ind_reg *= sqrt(max(193.97 * exp(((0.4341 * (2 ** (max_reg.size - max_reg.fraction_digits))) * max_reg_fixed) + (-0.7408)), 190)) / sqrt(max(193.97 * exp(((0.4341 * (2 ** (max_reg.size - max_reg.fraction_digits))) * (1 - (1 / (2 ** max_reg.size)))) + (-0.7408)), 190));
+  max_reg_fixed -> max_reg;
+}
+
+qfunc rainbow_brute_force(qvars: EstimationVars, ind: qbit) {
+  inplace_prepare_state([
+    0.0656,
+    0.4344,
+    0.4344,
+    0.0656
+  ], 0, qvars.x1);
+  inplace_prepare_state([
+    0.0656,
+    0.4344,
+    0.4344,
+    0.0656
+  ], 0, qvars.x2);
+  max_out: qnum;
+  affine_max(qvars.x1, qvars.x2, max_out);
+  brute_force_payoff(max_out, ind);
+}
+
+qfunc space_transform(est_reg: qbit[]) {
+  rainbow_brute_force(est_reg[0:est_reg.len - 1], est_reg[est_reg.len - 1]);
+}
+
+qfunc main(k: int, output indicator: qbit) {
+  est_reg: qbit[];
+  problem_vars: qbit[4];
+  allocate(problem_vars);
+  allocate(indicator);
+  within {
+    {problem_vars, indicator} -> est_reg;
+  } apply {
+    amplitude_amplification(k, oracle, space_transform, est_reg);
+  }
+  drop(problem_vars);
+}

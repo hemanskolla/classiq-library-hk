@@ -1,65 +1,34 @@
-DOMAIN_SIZE_QCONST: int = 4;
-
-qfunc arith_equation(a: qnum, b: qnum, res: qbit) {
-  res ^= (a + b) <= 2;
+qstruct OracleVars {
+  a: qnum<2>;
+  b: qnum<2>;
 }
 
-qfunc iqae_state_preparation(a: qnum, b: qnum, res: qbit) {
-  reg: qbit[];
-  {a, b, res} -> reg;
-  hadamard_transform(reg[0:4]);
-  reg -> {a, b, res};
-  arith_equation(a, b, res);
+qperm oracle(const est_reg: qbit[]) {
+  Z(est_reg[est_reg.len - 1]);
 }
 
-qfunc reflection_about_zero(x: qbit[]) {
-  lsb: qbit;
-  msbs: qbit[x.len - 1];
-  apply_to_all<X>(x);
-  x -> {msbs, lsb};
-  control (msbs) {
-    Z(lsb);
-  }
-  {msbs, lsb} -> x;
-  apply_to_all<X>(x);
+qperm arith_equation(const state: OracleVars, res: qbit) {
+  res ^= (state.a + state.b) <= 2;
 }
 
-qfunc my_diffuser<sp_operand: qfunc (arg0: qbit[])>(x: qbit[]) {
+qfunc iqae_state_preparation(vars: OracleVars, ind: qbit) {
+  hadamard_transform(vars);
+  arith_equation(vars, ind);
+}
+
+qfunc space_transform(est_reg: qbit[]) {
+  iqae_state_preparation(est_reg[0:est_reg.len - 1], est_reg[est_reg.len - 1]);
+}
+
+qfunc main(k: int, output indicator: qbit) {
+  est_reg: qbit[];
+  problem_vars: qbit[4];
+  allocate(problem_vars);
+  allocate(indicator);
   within {
-    invert {
-      sp_operand(x);
-    }
+    {problem_vars, indicator} -> est_reg;
   } apply {
-    reflection_about_zero(x);
+    amplitude_amplification(k, oracle, space_transform, est_reg);
   }
+  drop(problem_vars);
 }
-
-qfunc my_grover_operator<oracle_operand: qfunc (arg0: qbit[]), sp_operand: qfunc (arg0: qbit[])>(x: qbit[]) {
-  oracle_operand(x);
-  my_diffuser<sp_operand>(x);
-  U<0, 0, 0, 3.1416>(x[0]);
-}
-
-qfunc my_iqae_algorithm<k: int, oracle_operand: qfunc (arg0: qbit[]), sp_operand: qfunc (arg0: qbit[])>(x: qbit[]) {
-  sp_operand(x);
-  power (k) {
-    my_grover_operator<oracle_operand, sp_operand>(x);
-  }
-}
-
-qfunc main<k: int>(output ind_reg: qbit) {
-  full_reg: qbit[];
-  allocate<5>(full_reg);
-  my_iqae_algorithm<k, lambda(x) {
-    Z(x[x.len - 1]);
-  }, lambda(x) {
-    iqae_state_preparation(x[0:2], x[2:x.len - 1], x[x.len - 1]);
-  }>(full_reg);
-  state_reg: qbit[4];
-  full_reg -> {state_reg, ind_reg};
-}
-
-cscope ```
-iqae_res = iqae(epsilon=1 / (2 ** DOMAIN_SIZE_QCONST * 2), alpha=0.01)
-save({'iqae_res': iqae_res})
-```

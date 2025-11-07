@@ -1,5 +1,4 @@
-qfunc main() {
-  q: qbit;
-  allocate<1>(q);
-  R<1, 2>(q);
+qfunc main(output q: qbit) {
+  allocate(q);
+  R(1, 2, q);
 }
